@@ -1,13 +1,290 @@
 <!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>app</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+<html lang="es">
+<head>
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<title>Rutas de Vuelos - BFS</title>
+	<style>
+		:root {
+			--bg-1: #f6efe4;
+			--bg-2: #e6f2ee;
+			--card: #fffdf8;
+			--ink: #1f2a37;
+			--muted: #5f6b7a;
+			--accent: #dd6b20;
+			--accent-2: #2b6cb0;
+			--ok: #1a7f37;
+			--err: #b42318;
+			--border: #d9d5cc;
+		}
+
+		* {
+			box-sizing: border-box;
+		}
+
+		body {
+			margin: 0;
+			min-height: 100vh;
+			font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+			color: var(--ink);
+			background:
+				radial-gradient(circle at 10% 10%, #fff6d6 0, transparent 42%),
+				radial-gradient(circle at 80% 20%, #d7f0ff 0, transparent 36%),
+				linear-gradient(140deg, var(--bg-1), var(--bg-2));
+			display: grid;
+			place-items: center;
+			padding: 24px;
+		}
+
+		.app {
+			width: min(900px, 100%);
+			background: color-mix(in srgb, var(--card) 94%, white 6%);
+			border: 1px solid var(--border);
+			border-radius: 24px;
+			box-shadow: 0 30px 60px rgba(24, 39, 75, 0.15);
+			overflow: hidden;
+			transform: translateY(16px);
+			opacity: 0;
+			animation: reveal 550ms ease forwards;
+		}
+
+		@keyframes reveal {
+			to {
+				transform: translateY(0);
+				opacity: 1;
+			}
+		}
+
+		.header {
+			padding: 28px 28px 16px;
+			border-bottom: 1px dashed var(--border);
+		}
+
+		.eyebrow {
+			margin: 0;
+			letter-spacing: 0.08em;
+			text-transform: uppercase;
+			color: var(--accent-2);
+			font-size: 12px;
+			font-weight: 700;
+		}
+
+		h1 {
+			margin: 8px 0 8px;
+			font-size: clamp(1.6rem, 2.6vw, 2.4rem);
+			line-height: 1.1;
+		}
+
+		.subtitle {
+			margin: 0;
+			color: var(--muted);
+		}
+
+		.content {
+			display: grid;
+			gap: 18px;
+			padding: 22px 28px 28px;
+		}
+
+		.fields {
+			display: grid;
+			grid-template-columns: 1fr 1fr;
+			gap: 12px;
+		}
+
+		label {
+			display: grid;
+			gap: 7px;
+			font-weight: 700;
+			font-size: 0.95rem;
+		}
+
+		input {
+			border: 1px solid var(--border);
+			border-radius: 12px;
+			padding: 12px 14px;
+			font: inherit;
+			background: #fff;
+			color: var(--ink);
+			transition: border-color 140ms ease, box-shadow 140ms ease;
+		}
+
+		input:focus {
+			outline: none;
+			border-color: var(--accent-2);
+			box-shadow: 0 0 0 4px rgba(43, 108, 176, 0.18);
+		}
+
+		.actions {
+			display: flex;
+			gap: 10px;
+			flex-wrap: wrap;
+			align-items: center;
+		}
+
+		button {
+			border: 0;
+			border-radius: 999px;
+			padding: 11px 18px;
+			font: inherit;
+			font-weight: 700;
+			cursor: pointer;
+			transition: transform 140ms ease, opacity 140ms ease;
+		}
+
+		.btn-primary {
+			background: linear-gradient(135deg, var(--accent), #f08f40);
+			color: #fff;
+			box-shadow: 0 8px 18px rgba(221, 107, 32, 0.35);
+		}
+
+		.btn-secondary {
+			background: #edf3fb;
+			color: var(--accent-2);
+		}
+
+		button:hover {
+			transform: translateY(-1px);
+		}
+
+		button:disabled {
+			opacity: 0.65;
+			cursor: not-allowed;
+			transform: none;
+		}
+
+		.message {
+			min-height: 24px;
+			margin: 0;
+			font-weight: 600;
+		}
+
+		.message.ok {
+			color: var(--ok);
+		}
+
+		.message.error {
+			color: var(--err);
+		}
+
+		.result {
+			border: 1px solid var(--border);
+			border-radius: 14px;
+			padding: 14px;
+			background: #fff;
+		}
+
+		.result h2 {
+			margin: 0 0 10px;
+			font-size: 1rem;
+			color: var(--muted);
+		}
+
+		.route {
+			display: flex;
+			flex-wrap: wrap;
+			gap: 8px;
+			align-items: center;
+			min-height: 34px;
+		}
+
+		.chip {
+			background: #f8f4ed;
+			border: 1px solid #eadfce;
+			border-radius: 999px;
+			padding: 8px 12px;
+			font-weight: 700;
+			font-size: 0.92rem;
+			animation: pop 260ms ease both;
+		}
+
+		.arrow {
+			color: var(--accent-2);
+			font-weight: 800;
+			opacity: 0.8;
+			animation: pop 260ms ease both;
+		}
+
+		@keyframes pop {
+			from {
+				transform: translateY(4px) scale(0.98);
+				opacity: 0;
+			}
+			to {
+				transform: none;
+				opacity: 1;
+			}
+		}
+
+		@media (max-width: 700px) {
+			.fields {
+				grid-template-columns: 1fr;
+			}
+
+			.app {
+				border-radius: 18px;
+			}
+
+			.header,
+			.content {
+				padding-left: 18px;
+				padding-right: 18px;
+			}
+		}
+	</style>
+</head>
+<body>
+	<main class="app">
+		<header class="header">
+			<p class="eyebrow">Busqueda en amplitud</p>
+			<h1>Calculador de Rutas de Vuelo</h1>
+			<p class="subtitle">Ingresa ciudad de origen y destino para encontrar una ruta valida usando BFS.</p>
+		</header>
+
+		<section class="content">
+			<form id="ruta-form" novalidate>
+				<div class="fields">
+					<label for="inicio">
+						Ciudad de inicio
+						<input id="inicio" name="inicio" list="ciudades" placeholder="Ej. Jilotepec" autocomplete="off" required />
+					</label>
+
+					<label for="final">
+						Ciudad destino
+						<input id="final" name="final" list="ciudades" placeholder="Ej. Monterrey" autocomplete="off" required />
+					</label>
+				</div>
+
+				<datalist id="ciudades">
+					<option value="Aguascalientes"></option>
+					<option value="CDMX"></option>
+					<option value="Celaya"></option>
+					<option value="Guanajuato"></option>
+					<option value="Jilotepec"></option>
+					<option value="Monterrey"></option>
+					<option value="Oaxaca"></option>
+					<option value="Queretaro"></option>
+					<option value="Sinaloa"></option>
+					<option value="Sonora"></option>
+					<option value="Tamaulipas"></option>
+					<option value="Zacatecas"></option>
+				</datalist>
+
+				<div class="actions" style="margin-top: 14px;">
+					<button class="btn-primary" id="calcular-btn" type="submit">Calcular ruta</button>
+					<button class="btn-secondary" id="limpiar-btn" type="button">Limpiar</button>
+				</div>
+			</form>
+
+			<p id="mensaje" class="message" aria-live="polite"></p>
+
+			<article class="result">
+				<h2>Ruta encontrada</h2>
+				<div id="ruta" class="route" aria-live="polite"></div>
+			</article>
+		</section>
+	</main>
+
+	<script src="./main.js" defer></script>
+</body>
 </html>
